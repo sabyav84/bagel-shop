@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  strapi:
+    container_name: bagel-shop-strapi
+    image: node:18-alpine
+    restart: unless-stopped
+    working_dir: /opt/app
+    volumes:
+      - ./strapi-app:/opt/app
+    ports:
+      - '1337:1337'
+    environment:
+      DATABASE_CLIENT: postgres
+      DATABASE_HOST: strapiDB
+      DATABASE_PORT: 5432
+      DATABASE_NAME: bagel_shop_db
+      DATABASE_USERNAME: strapi_user
+      DATABASE_PASSWORD: strapi_password
+      DATABASE_SSL: false
+      JWT_SECRET: super-secret-jwt-key-bagel-shop
+      ADMIN_JWT_SECRET: super-secret-admin-jwt-key
+      APP_KEYS: key1,key2
+    depends_on:
+      - strapiDB
+
+  strapiDB:
+    container_name: bagel-shop-postgres
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: bagel_shop_db
+      POSTGRES_USER: strapi_user
+      POSTGRES_PASSWORD: strapi_password
+    volumes:
+      - strapi-data:/var/lib/postgresql/data
+    ports:
+      - '5432:5432'
+
+volumes:
+  strapi-data:

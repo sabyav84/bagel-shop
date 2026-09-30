@@ -1,0 +1,75 @@
+'use client';
+
+import { ShoppingBag, Utensils, Clock, Store, ShieldCheck } from 'lucide-react';
+
+interface NavbarProps {
+  cartCount: number;
+  onOpenCart: () => void;
+  isBackendConnected: boolean;
+}
+
+export function Navbar({ cartCount, onOpenCart, isBackendConnected }: NavbarProps) {
+  return (
+    <header className="sticky top-0 z-40 w-full backdrop-blur-md bg-amber-950/90 border-b border-amber-800/40 text-amber-50 transition-all shadow-lg">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+        
+        {/* Brand Logo & Name */}
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-amber-500 via-amber-400 to-amber-200 p-0.5 shadow-md flex items-center justify-center">
+            <div className="w-full h-full rounded-full bg-amber-950 flex items-center justify-center">
+              <Utensils className="w-6 h-6 text-amber-400" />
+            </div>
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-bold tracking-tight text-amber-100 font-serif">
+                Bagelicious <span className="text-amber-400">Bagels</span>
+              </h1>
+              {isBackendConnected ? (
+                <span className="hidden md:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-950/80 border border-emerald-700/50 text-emerald-400">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  Strapi Connected
+                </span>
+              ) : (
+                <span className="hidden md:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-900/60 border border-amber-700/50 text-amber-300">
+                  <ShieldCheck className="w-3 h-3 text-amber-400" />
+                  Demo Mode
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-amber-300/80 font-sans flex items-center gap-2">
+              <span>Hand-Rolled Daily</span>
+              <span>•</span>
+              <span className="flex items-center gap-1 text-amber-400">
+                <Clock className="w-3 h-3" /> Open 6am - 3pm
+              </span>
+            </p>
+          </div>
+        </div>
+
+        {/* Quick Info & Cart Action Button */}
+        <div className="flex items-center gap-4">
+          <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-900/40 border border-amber-800/40 text-xs text-amber-200">
+            <Store className="w-4 h-4 text-amber-400" />
+            <span>Pickup: 142 Bleecker St, NYC</span>
+          </div>
+
+          <button
+            onClick={onOpenCart}
+            className="relative flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-amber-950 font-semibold shadow-lg shadow-amber-500/20 active:scale-95 transition-all duration-200 cursor-pointer"
+            aria-label="Open Shopping Cart"
+          >
+            <ShoppingBag className="w-5 h-5" />
+            <span className="hidden sm:inline">Your Order</span>
+            {cartCount > 0 && (
+              <span className="flex items-center justify-center min-w-6 h-6 px-1.5 rounded-full bg-amber-950 text-amber-300 font-bold text-xs border border-amber-400/50 animate-bounce">
+                {cartCount}
+              </span>
+            )}
+          </button>
+        </div>
+
+      </div>
+    </header>
+  );
+}
