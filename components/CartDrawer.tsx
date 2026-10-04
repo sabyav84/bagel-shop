@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { CartItem, OrderInput, OrderResponse } from '@/types/bagel';
 import { createOrderInStrapi } from '@/lib/strapi';
+import { createOrderInSupabase, isSupabaseConfigured } from '@/lib/supabase';
 import { X, Trash2, ShoppingBag, Send, ShieldCheck, AlertCircle } from 'lucide-react';
 
 interface CartDrawerProps {
@@ -118,7 +119,9 @@ export function CartDrawer({
     };
 
     try {
-      const response = await createOrderInStrapi(orderInput);
+      const response = isSupabaseConfigured()
+        ? await createOrderInSupabase(orderInput)
+        : await createOrderInStrapi(orderInput);
       onClearCart();
       onOrderSuccess(response);
       setNotes('');

@@ -21,6 +21,11 @@ import {
   MOCK_BAGELS,
   MOCK_CREAM_CHEESES,
 } from '@/lib/strapi';
+import {
+  getBagelsFromSupabase,
+  getCreamCheesesFromSupabase,
+  isSupabaseConfigured,
+} from '@/lib/supabase';
 import { Coffee } from 'lucide-react';
 
 export default function Home() {
@@ -35,23 +40,32 @@ export default function Home() {
   const [isBackendConnected, setIsBackendConnected] = useState(false);
 
   useEffect(() => {
-    async function loadStrapiData() {
+    async function loadMenuData() {
       try {
-        const [fetchedBagels, fetchedCC] = await Promise.all([
-          getBagelsFromStrapi(),
-          getCreamCheesesFromStrapi(),
-        ]);
-        if (fetchedBagels.length > 0) setBagels(fetchedBagels);
-        if (fetchedCC.length > 0) setCreamCheeses(fetchedCC);
-        
-        // Check if strapi port is answering
-        const check = await fetch('http://localhost:1337/api/bagels', { method: 'HEAD' }).catch(() => null);
-        if (check && check.ok) setIsBackendConnected(true);
+        if (isSupabaseConfigured()) {
+          const [fetchedBagels, fetchedCC] = await Promise.all([
+            getBagelsFromSupabase(),
+            getCreamCheesesFromSupabase(),
+          ]);
+          if (fetchedBagels.length > 0) setBagels(fetchedBagels);
+          if (fetchedCC.length > 0) setCreamCheeses(fetchedCC);
+          setIsBackendConnected(true);
+        } else {
+          const [fetchedBagels, fetchedCC] = await Promise.all([
+            getBagelsFromStrapi(),
+            getCreamCheesesFromStrapi(),
+          ]);
+          if (fetchedBagels.length > 0) setBagels(fetchedBagels);
+          if (fetchedCC.length > 0) setCreamCheeses(fetchedCC);
+          
+          const check = await fetch('http://localhost:1337/api/bagels', { method: 'HEAD' }).catch(() => null);
+          if (check && check.ok) setIsBackendConnected(true);
+        }
       } catch (err) {
-        console.log('Strapi backend running in offline/demo mode', err);
+        console.log('Backend running in offline/demo mode', err);
       }
     }
-    loadStrapiData();
+    loadMenuData();
   }, []);
 
   const handleAddToCart = (item: CartItem) => {
