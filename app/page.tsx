@@ -7,6 +7,7 @@ import { MenuSection } from '@/components/MenuSection';
 import { CustomizationModal } from '@/components/CustomizationModal';
 import { CartDrawer } from '@/components/CartDrawer';
 import { OrderStatusModal } from '@/components/OrderStatusModal';
+import { TrackOrderModal } from '@/components/TrackOrderModal';
 import {
   Bagel,
   CreamCheese,
@@ -36,8 +37,37 @@ export default function Home() {
   const [selectedBagel, setSelectedBagel] = useState<Bagel | null>(null);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [isTrackOrderOpen, setIsTrackOrderOpen] = useState(false);
   const [submittedOrder, setSubmittedOrder] = useState<OrderResponse | null>(null);
+  const [recentOrders, setRecentOrders] = useState<OrderResponse[]>([]);
   const [isBackendConnected, setIsBackendConnected] = useState(false);
+
+  // Load recent orders from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('bagel_shop_recent_orders');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) setRecentOrders(parsed);
+      }
+    } catch {
+      // Ignore storage error
+    }
+  }, []);
+
+  const handleOrderSuccess = (order: OrderResponse) => {
+    setSubmittedOrder(order);
+    setRecentOrders((prev) => {
+      const filtered = prev.filter((o) => o.orderNumber !== order.orderNumber);
+      const updated = [order, ...filtered];
+      try {
+        localStorage.setItem('bagel_shop_recent_orders', JSON.stringify(updated));
+      } catch {
+        // Ignore storage error
+      }
+      return updated;
+    });
+  };
 
   useEffect(() => {
     async function loadMenuData() {
@@ -113,6 +143,12 @@ export default function Home() {
         <Navbar
           cartCount={cartItems.reduce((acc, item) => acc + item.quantity, 0)}
           onOpenCart={() => setIsCartOpen(true)}
+          onOpenTrackOrder={() => setIsTrackOrderOpen(true)}
+          activeOrder={submittedOrder || (recentOrders.length > 0 ? recentOrders[0] : null)}
+          onOpenActiveOrder={() => {
+            const orderToOpen = submittedOrder || recentOrders[0];
+            if (orderToOpen) setSubmittedOrder(orderToOpen);
+          }}
           isBackendConnected={isBackendConnected}
         />
 
@@ -151,7 +187,14 @@ export default function Home() {
         items={cartItems}
         onRemoveItem={handleRemoveFromCart}
         onClearCart={handleClearCart}
-        onOrderSuccess={(order) => setSubmittedOrder(order)}
+        onOrderSuccess={handleOrderSuccess}
+      />
+
+      <TrackOrderModal
+        isOpen={isTrackOrderOpen}
+        onClose={() => setIsTrackOrderOpen(false)}
+        recentOrders={recentOrders}
+        onSelectOrder={(order) => setSubmittedOrder(order)}
       />
 
       <OrderStatusModal

@@ -1,14 +1,25 @@
 'use client';
 
-import { ShoppingBag, Utensils, Clock, Store, ShieldCheck } from 'lucide-react';
+import { ShoppingBag, Utensils, Clock, Store, ShieldCheck, PackageCheck } from 'lucide-react';
+import { OrderResponse } from '@/types/bagel';
 
 interface NavbarProps {
   cartCount: number;
   onOpenCart: () => void;
+  onOpenTrackOrder: () => void;
+  activeOrder?: OrderResponse | null;
+  onOpenActiveOrder?: () => void;
   isBackendConnected: boolean;
 }
 
-export function Navbar({ cartCount, onOpenCart, isBackendConnected }: NavbarProps) {
+export function Navbar({
+  cartCount,
+  onOpenCart,
+  onOpenTrackOrder,
+  activeOrder,
+  onOpenActiveOrder,
+  isBackendConnected,
+}: NavbarProps) {
   return (
     <header className="sticky top-0 z-40 w-full backdrop-blur-md bg-amber-950/90 border-b border-amber-800/40 text-amber-50 transition-all shadow-lg">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
@@ -47,12 +58,32 @@ export function Navbar({ cartCount, onOpenCart, isBackendConnected }: NavbarProp
           </div>
         </div>
 
-        {/* Quick Info & Cart Action Button */}
-        <div className="flex items-center gap-4">
+        {/* Quick Info & Actions */}
+        <div className="flex items-center gap-3">
           <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-900/40 border border-amber-800/40 text-xs text-amber-200">
             <Store className="w-4 h-4 text-amber-400" />
             <span>Pickup: 142 Bleecker St, NYC</span>
           </div>
+
+          {activeOrder && onOpenActiveOrder && (
+            <button
+              onClick={onOpenActiveOrder}
+              className="flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-950/90 hover:bg-emerald-900 border border-emerald-700/60 text-emerald-300 text-xs font-bold transition shadow-md cursor-pointer animate-pulse"
+              title="Click to check your active order progress"
+            >
+              <PackageCheck className="w-4 h-4 text-emerald-400" />
+              <span>Active Order #{activeOrder.orderNumber}</span>
+            </button>
+          )}
+
+          <button
+            onClick={onOpenTrackOrder}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-900/50 hover:bg-amber-900 border border-amber-700/60 text-amber-200 hover:text-amber-100 text-xs font-semibold transition cursor-pointer"
+            title="Track Order Status"
+          >
+            <PackageCheck className="w-4 h-4 text-amber-400" />
+            <span className="hidden sm:inline">Track Order</span>
+          </button>
 
           <button
             onClick={onOpenCart}
@@ -60,7 +91,7 @@ export function Navbar({ cartCount, onOpenCart, isBackendConnected }: NavbarProp
             aria-label="Open Shopping Cart"
           >
             <ShoppingBag className="w-5 h-5" />
-            <span className="hidden sm:inline">Your Order</span>
+            <span className="hidden sm:inline">Cart</span>
             {cartCount > 0 && (
               <span className="flex items-center justify-center min-w-6 h-6 px-1.5 rounded-full bg-amber-950 text-amber-300 font-bold text-xs border border-amber-400/50 animate-bounce">
                 {cartCount}

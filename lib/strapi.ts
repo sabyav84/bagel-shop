@@ -169,3 +169,26 @@ export const GRAPHQL_QUERIES = {
     }
   `
 };
+
+export async function getOrderByNumberFromStrapi(orderNumber: string): Promise<OrderResponse | null> {
+  try {
+    const cleanNumber = orderNumber.trim();
+    const res = await fetch(`${STRAPI_URL}/api/orders?filters[orderNumber][$eq]=${encodeURIComponent(cleanNumber)}`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!data?.data || data.data.length === 0) return null;
+    const item = data.data[0];
+    const attrs = item.attributes || item;
+    return {
+      id: String(item.id || attrs.documentId),
+      orderNumber: attrs.orderNumber,
+      status: attrs.status || 'pending',
+      customerName: attrs.customerName || 'Customer',
+      totalAmount: Number(attrs.totalAmount || 0),
+      createdAt: attrs.createdAt || new Date().toISOString(),
+    };
+  } catch {
+    return null;
+  }
+}
+

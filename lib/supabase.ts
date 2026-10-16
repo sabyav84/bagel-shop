@@ -128,3 +128,30 @@ export async function createOrderInSupabase(orderData: OrderInput): Promise<Orde
     createdAt: new Date().toISOString(),
   };
 }
+
+export async function getOrderByNumberFromSupabase(orderNumber: string): Promise<OrderResponse | null> {
+  if (!isSupabaseConfigured()) return null;
+  try {
+    const cleanNumber = orderNumber.trim();
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*')
+      .ilike('order_number', cleanNumber)
+      .maybeSingle();
+
+    if (error || !data) return null;
+
+    return {
+      id: String(data.id),
+      orderNumber: data.order_number,
+      status: data.status,
+      customerName: data.customer_name,
+      totalAmount: Number(data.total_amount),
+      createdAt: data.created_at,
+    };
+  } catch (err) {
+    console.error('Error fetching order from Supabase:', err);
+    return null;
+  }
+}
+
