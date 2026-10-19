@@ -4,7 +4,8 @@ import React, { useState } from 'react';
 import { CartItem, OrderInput, OrderResponse } from '@/types/bagel';
 import { createOrderInStrapi } from '@/lib/strapi';
 import { createOrderInSupabase, isSupabaseConfigured } from '@/lib/supabase';
-import { X, Trash2, ShoppingBag, Send, ShieldCheck, AlertCircle } from 'lucide-react';
+import { StripePaymentSection } from './StripePaymentSection';
+import { X, Trash2, ShoppingBag, Send, ShieldCheck, AlertCircle, CreditCard, Banknote, Lock } from 'lucide-react';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -29,6 +30,7 @@ export function CartDrawer({
   const [phone, setPhone] = useState('');
   const [pickupTime, setPickupTime] = useState('ASAP (10-15 mins)');
   const [notes, setNotes] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<'stripe' | 'counter'>('stripe');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
@@ -83,11 +85,14 @@ export function CartDrawer({
   const tax = subtotal * 0.08875; // NYC Sales Tax 8.875%
   const total = subtotal + tax;
 
-  const handleSubmitOrder = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (items.length === 0) return;
+  const isFormValid = Boolean(
+    firstName.trim().length >= 2 &&
+    lastName.trim().length >= 2 &&
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) &&
+    phone.replace(/\D/g, '').length >= 10
+  );
 
-    // Validate all fields
+  const validateAllFields = () => {
     const newErrors: Record<string, string> = {
       firstName: validateField('firstName', firstName),
       lastName: validateField('lastName', lastName),
@@ -96,8 +101,16 @@ export function CartDrawer({
     };
     setErrors(newErrors);
     setTouched({ firstName: true, lastName: true, email: true, phone: true });
+    return !Object.values(newErrors).some((err) => err !== '');
+  };
 
-    if (Object.values(newErrors).some((err) => err !== '')) return;
+  const handlePlaceOrder = async (paymentDetails?: {
+    method: 'stripe' | 'counter';
+    status: 'paid' | 'pending';
+    intentId?: string;
+  }) => {
+    if (items.length === 0) return;
+    if (!validateAllFields()) return;
 
     setIsSubmitting(true);
 
@@ -116,6 +129,9 @@ export function CartDrawer({
         unitPrice: item.bagel.price + (item.creamCheese?.price || 0),
       })),
       totalAmount: Number(total.toFixed(2)),
+      paymentMethod: paymentDetails?.method || paymentMethod,
+      paymentStatus: paymentDetails?.status || (paymentMethod === 'stripe' ? 'paid' : 'pending'),
+      stripePaymentIntentId: paymentDetails?.intentId,
     };
 
     try {
@@ -218,7 +234,7 @@ export function CartDrawer({
               </div>
 
               {/* Checkout Form */}
-              <form id="order-form" onSubmit={handleSubmitOrder} className="pt-4 border-t border-amber-800/60 space-y-4">
+              <form id="order-form" onSubmit={(e) => { e.preventDefault(); handlePlaceOrder(); }} className="pt-4 border-t border-amber-800/60 space-y-4">
                 <div className="text-xs font-bold text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
                   <ShieldCheck className="w-4 h-4 text-amber-400" />
                   Customer Information
@@ -360,15 +376,98 @@ export function CartDrawer({
                       className="w-full px-3 py-2 rounded-xl bg-amber-900/40 border border-amber-800 text-amber-100 placeholder:text-amber-600/70 focus:outline-none focus:border-amber-500 resize-none"
                     />
                   </div>
+
+                  {/* Payment Method Section */}
+                  <div className="pt-3 border-t border-amber-800/60 space-y-3">
+                    <div className="text-xs font-bold text-amber-300 uppercase tracking-wider flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">
+                        <CreditCard className="w-4 h-4 text-amber-400" /> Payment Method
+                      </span>
+                      <span className="text-[10px] text-emerald-400 font-semibold px-2 py-0.5 rounded-full bg-emerald-950 border border-emerald-800/60">
+                        Test Mode Available
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setPaymentMethod('stripe')}
+                        className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-1 text-center transition cursor-pointer ${
+                          paymentMethod === 'stripe'
+                            ? 'bg-amber-900/90 border-amber-400 text-amber-100 shadow-md ring-1 ring-amber-400/60'
+                            : 'bg-amber-900/30 border-amber-800/80 text-amber-300/80 hover:bg-amber-900/50'
+                        }`}
+                      >
+                        <CreditCard className="w-4 h-4 text-amber-400" />
+                        <span className="font-bold text-xs">Test Credit Card</span>
+                        <span className="text-[10px] text-amber-400/70">Stripe Sandbox (4242)</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setPaymentMethod('counter')}
+                        className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-1 text-center transition cursor-pointer ${
+                          paymentMethod === 'counter'
+                            ? 'bg-amber-900/90 border-amber-400 text-amber-100 shadow-md ring-1 ring-amber-400/60'
+                            : 'bg-amber-900/30 border-amber-800/80 text-amber-300/80 hover:bg-amber-900/50'
+                        }`}
+                      >
+                        <Banknote className="w-4 h-4 text-amber-400" />
+                        <span className="font-bold text-xs">Pay at Counter</span>
+                        <span className="text-[10px] text-amber-400/70">Cash or Card in store</span>
+                      </button>
+                    </div>
+
+                    {paymentMethod === 'stripe' ? (
+                      <div className="pt-1">
+                        <StripePaymentSection
+                          totalAmount={total}
+                          customerName={`${firstName.trim()} ${lastName.trim()}`}
+                          customerEmail={email.trim()}
+                          customerPhone={phone.trim()}
+                          onPaymentSuccess={(intentId) =>
+                            handlePlaceOrder({
+                              method: 'stripe',
+                              status: 'paid',
+                              intentId,
+                            })
+                          }
+                          isProcessing={isSubmitting}
+                          setIsProcessing={setIsSubmitting}
+                          formValid={isFormValid}
+                        />
+                      </div>
+                    ) : (
+                      <div className="p-3 rounded-xl bg-amber-900/40 border border-amber-800/80 text-xs space-y-3">
+                        <p className="text-amber-300/90 leading-relaxed text-[11px]">
+                          Your order will be sent to the kitchen and held for counter pickup at 142 Bleecker St. You can pay with cash or card upon arrival.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handlePlaceOrder({
+                              method: 'counter',
+                              status: 'pending',
+                            })
+                          }
+                          disabled={isSubmitting}
+                          className="w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-amber-950 font-bold text-sm shadow-xl flex items-center justify-center gap-2 transition cursor-pointer disabled:opacity-50"
+                        >
+                          <Send className="w-4 h-4" />
+                          <span>Place Order & Pay at Counter (${total.toFixed(2)})</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </form>
             </>
           )}
         </div>
 
-        {/* Drawer Footer & Submit */}
+        {/* Drawer Footer */}
         {items.length > 0 && (
-          <div className="p-5 bg-amber-950 border-t border-amber-800/60 space-y-4">
+          <div className="p-5 bg-amber-950 border-t border-amber-800/60 space-y-3">
             <div className="space-y-1.5 text-xs text-amber-300/80">
               <div className="flex justify-between">
                 <span>Subtotal</span>
@@ -383,22 +482,12 @@ export function CartDrawer({
                 <span className="text-amber-400">${total.toFixed(2)}</span>
               </div>
             </div>
-
-            <button
-              form="order-form"
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-amber-950 font-bold text-sm shadow-xl flex items-center justify-center gap-2 transition cursor-pointer disabled:opacity-50"
-            >
-              {isSubmitting ? (
-                <span>Sending Order to Strapi...</span>
-              ) : (
-                <>
-                  <Send className="w-4 h-4" />
-                  <span>Send Order to Strapi Backend</span>
-                </>
-              )}
-            </button>
+            {paymentMethod === 'stripe' && (
+              <div className="flex items-center justify-center gap-1.5 text-[11px] text-amber-400/80 pt-1">
+                <Lock className="w-3.5 h-3.5 text-amber-400" />
+                <span>Test payment form is ready above</span>
+              </div>
+            )}
           </div>
         )}
 

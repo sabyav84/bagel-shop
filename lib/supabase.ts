@@ -84,6 +84,10 @@ export async function createOrderInSupabase(orderData: OrderInput): Promise<Orde
 
   if (isSupabaseConfigured()) {
     try {
+      const enrichedNotes = orderData.paymentStatus === 'paid'
+        ? `[PAID via Stripe Test (${orderData.stripePaymentIntentId || 'test_card'})] ${orderData.notes || ''}`.trim()
+        : orderData.notes;
+
       const { data, error } = await supabase
         .from('orders')
         .insert([
@@ -93,7 +97,7 @@ export async function createOrderInSupabase(orderData: OrderInput): Promise<Orde
             email: orderData.email,
             phone: orderData.phone,
             pickup_time: orderData.pickupTime,
-            notes: orderData.notes,
+            notes: enrichedNotes,
             items: orderData.items,
             total_amount: orderData.totalAmount,
             status: 'pending',
@@ -109,6 +113,8 @@ export async function createOrderInSupabase(orderData: OrderInput): Promise<Orde
           status: data.status,
           customerName: data.customer_name,
           totalAmount: Number(data.total_amount),
+          paymentStatus: orderData.paymentStatus || 'paid',
+          stripePaymentIntentId: orderData.stripePaymentIntentId,
           createdAt: data.created_at,
         };
       }
@@ -125,6 +131,8 @@ export async function createOrderInSupabase(orderData: OrderInput): Promise<Orde
     status: 'pending',
     customerName: orderData.customerName,
     totalAmount: orderData.totalAmount,
+    paymentStatus: orderData.paymentStatus || 'paid',
+    stripePaymentIntentId: orderData.stripePaymentIntentId,
     createdAt: new Date().toISOString(),
   };
 }

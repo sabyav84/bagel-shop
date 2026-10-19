@@ -55,13 +55,26 @@ export function OrderStatusModal({ order, onClose }: OrderStatusModalProps) {
 
         {/* Modal Header */}
         <div className="text-center space-y-2">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950 border border-emerald-700/60 text-emerald-400 text-xs font-bold">
-            <CheckCircle2 className="w-4 h-4" /> Order Sent to Strapi Backend!
-          </div>
+          {order.paymentStatus === 'paid' ? (
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950 border border-emerald-700/60 text-emerald-400 text-xs font-bold">
+              <CheckCircle2 className="w-4 h-4" /> Paid with Test Card • Order Confirmed!
+            </div>
+          ) : (
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-900/60 border border-amber-700/60 text-amber-300 text-xs font-bold">
+              <CheckCircle2 className="w-4 h-4" /> Order Registered • Pay at Counter
+            </div>
+          )}
+
           <h3 className="text-2xl font-bold font-serif text-amber-100">Order #{order.orderNumber}</h3>
-          <p className="text-xs text-amber-300/80">
-            Thank you, <strong className="text-amber-100">{order.customerName}</strong>! Your order has been registered in the database.
-          </p>
+          
+          <div className="text-xs text-amber-300/80 space-y-0.5">
+            <p>
+              Thank you, <strong className="text-amber-100">{order.customerName}</strong>! Your order has been placed.
+            </p>
+            <p className="text-amber-400 font-medium">
+              Total: ${order.totalAmount.toFixed(2)} • {order.paymentStatus === 'paid' ? 'Payment Status: Paid (Stripe Test)' : 'Payment Status: Due at Pickup'}
+            </p>
+          </div>
         </div>
 
         {/* Live Status Pipeline */}

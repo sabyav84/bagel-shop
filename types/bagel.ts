@@ -56,6 +56,9 @@ export interface OrderInput {
     unitPrice: number;
   }[];
   totalAmount: number;
+  paymentMethod?: 'stripe' | 'cash' | 'counter';
+  paymentStatus?: 'paid' | 'pending';
+  stripePaymentIntentId?: string;
 }
 
 export interface OrderResponse {
@@ -64,5 +67,8 @@ export interface OrderResponse {
   status: 'pending' | 'preparing' | 'ready' | 'completed';
   customerName: string;
   totalAmount: number;
+  paymentMethod?: 'stripe' | 'cash' | 'counter';
+  paymentStatus?: 'paid' | 'pending';
+  stripePaymentIntentId?: string;
   createdAt: string;
 }
