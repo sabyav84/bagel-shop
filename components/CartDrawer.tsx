@@ -122,11 +122,12 @@ export function CartDrawer({
       notes,
       items: items.map((item) => ({
         bagelName: item.bagel.name,
-        breadOption: item.breadOption,
+        breadOption: item.breadOption || 'Standard Sliced',
         creamCheeseName: item.creamCheese?.name,
         quantity: item.quantity,
         toasted: item.toasted,
         unitPrice: item.bagel.price + (item.creamCheese?.price || 0),
+        specialInstructions: item.specialInstructions || '',
       })),
       totalAmount: Number(total.toFixed(2)),
       paymentMethod: paymentDetails?.method || paymentMethod,
@@ -138,8 +139,28 @@ export function CartDrawer({
       const response = isSupabaseConfigured()
         ? await createOrderInSupabase(orderInput)
         : await createOrderInStrapi(orderInput);
+
+      const fullOrder: OrderResponse = {
+        ...response,
+        email: response.email || orderInput.email,
+        phone: response.phone || orderInput.phone,
+        pickupTime: response.pickupTime || orderInput.pickupTime,
+        notes: response.notes || orderInput.notes,
+        items: (response.items && response.items.length > 0) ? response.items : orderInput.items,
+        paymentMethod: response.paymentMethod || orderInput.paymentMethod,
+        paymentStatus: response.paymentStatus || orderInput.paymentStatus,
+      };
+
+      // Ensure local storage is immediately updated with full preparation details
+      try {
+        const stored = localStorage.getItem('bagel_shop_recent_orders');
+        const existing: OrderResponse[] = stored ? JSON.parse(stored) : [];
+        const filtered = existing.filter((o) => o.orderNumber !== fullOrder.orderNumber);
+        localStorage.setItem('bagel_shop_recent_orders', JSON.stringify([fullOrder, ...filtered]));
+      } catch {}
+
       onClearCart();
-      onOrderSuccess(response);
+      onOrderSuccess(fullOrder);
       setNotes('');
       onClose();
     } catch (err) {

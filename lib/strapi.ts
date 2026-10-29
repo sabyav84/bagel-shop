@@ -1,4 +1,4 @@
-import { Bagel, Category, CreamCheese, OrderInput, OrderResponse } from '@/types/bagel';
+import { Bagel, Category, CreamCheese, OrderInput, OrderResponse, AdminOrder } from '@/types/bagel';
 import {
   FULL_MENU_CATEGORIES,
   MOCK_CREAM_CHEESES_EXPANDED,
@@ -108,7 +108,14 @@ export async function createOrderInStrapi(orderData: OrderInput): Promise<OrderR
           orderNumber,
           status: 'pending',
           customerName: orderData.customerName,
+          email: orderData.email,
+          phone: orderData.phone,
+          pickupTime: orderData.pickupTime,
+          notes: orderData.notes,
+          items: orderData.items,
           totalAmount: orderData.totalAmount,
+          paymentMethod: orderData.paymentMethod || 'stripe',
+          paymentStatus: orderData.paymentStatus || 'paid',
           createdAt: new Date().toISOString(),
         };
       }
@@ -117,13 +124,20 @@ export async function createOrderInStrapi(orderData: OrderInput): Promise<OrderR
     console.warn('Strapi REST order post fallback', err);
   }
 
-  // Fallback return for smooth demo
+  // Fallback return with complete preparation details
   return {
     id: `ord-${Date.now()}`,
     orderNumber,
     status: 'pending',
     customerName: orderData.customerName,
+    email: orderData.email,
+    phone: orderData.phone,
+    pickupTime: orderData.pickupTime,
+    notes: orderData.notes,
+    items: orderData.items,
     totalAmount: orderData.totalAmount,
+    paymentMethod: orderData.paymentMethod || 'stripe',
+    paymentStatus: orderData.paymentStatus || 'paid',
     createdAt: new Date().toISOString(),
   };
 }
@@ -191,4 +205,50 @@ export async function getOrderByNumberFromStrapi(orderNumber: string): Promise<O
     return null;
   }
 }
+
+export async function getAllOrdersFromStrapi(): Promise<AdminOrder[]> {
+  try {
+    const res = await fetch(`${STRAPI_URL}/api/orders?sort=createdAt:desc`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    if (!data?.data) return [];
+    return data.data.map((item: any) => {
+      const attrs = item.attributes || item;
+      return {
+        id: String(item.id || attrs.documentId),
+        orderNumber: attrs.orderNumber,
+        status: attrs.status || 'pending',
+        customerName: attrs.customerName || 'Customer',
+        email: attrs.email,
+        phone: attrs.phone,
+        pickupTime: attrs.pickupTime,
+        notes: attrs.notes,
+        items: attrs.items || [],
+        totalAmount: Number(attrs.totalAmount || 0),
+        paymentMethod: attrs.paymentMethod || 'stripe',
+        paymentStatus: attrs.paymentStatus || 'paid',
+        createdAt: attrs.createdAt || new Date().toISOString(),
+      };
+    });
+  } catch {
+    return [];
+  }
+}
+
+export async function updateOrderStatusInStrapi(
+  orderId: string,
+  newStatus: 'pending' | 'preparing' | 'ready' | 'completed'
+): Promise<boolean> {
+  try {
+    const res = await fetch(`${STRAPI_URL}/api/orders/${orderId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data: { status: newStatus } }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 

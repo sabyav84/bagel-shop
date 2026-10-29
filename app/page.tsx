@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { Navbar } from '@/components/Navbar';
 import { Hero } from '@/components/Hero';
 import { MenuSection } from '@/components/MenuSection';
@@ -120,7 +121,6 @@ export default function Home() {
 
       return [...prev, item];
     });
-    setIsCartOpen(true);
   };
 
   const handleRemoveFromCart = (cartId: string) => {
@@ -171,6 +171,14 @@ export default function Home() {
           <span>Bagelicious Bagel Shop • Built with Next.js 16 & Strapi v5</span>
         </div>
         <p>1031 NY-112, Port Jefferson Station, NY 11776 • (631) 642-0741</p>
+        <div className="pt-1">
+          <Link
+            href="/admin"
+            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-900/40 hover:bg-amber-900/80 border border-amber-800 text-amber-300 hover:text-amber-100 transition text-[11px]"
+          >
+            <span>Staff / Kitchen Orders Dashboard →</span>
+          </Link>
+        </div>
       </footer>
 
       {/* Modals & Drawers */}

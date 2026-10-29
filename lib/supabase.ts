@@ -1,5 +1,5 @@
 import { createBrowserClient } from '@supabase/ssr';
-import { Bagel, CreamCheese, OrderInput, OrderResponse } from '@/types/bagel';
+import { Bagel, CreamCheese, OrderInput, OrderResponse, AdminOrder, OrderItemDetail } from '@/types/bagel';
 import { MOCK_BAGELS, MOCK_CREAM_CHEESES } from './strapi';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -21,6 +21,31 @@ export function isSupabaseConfigured(): boolean {
     supabaseKey !== 'placeholder-key'
   );
 }
+
+export function parseOrderItems(rawItems: any): OrderItemDetail[] {
+  if (!rawItems) return [];
+  if (Array.isArray(rawItems)) {
+    return rawItems.map((item: any) => ({
+      bagelName: item.bagelName || item.name || 'Bagel',
+      breadOption: item.breadOption || 'Standard Sliced',
+      creamCheeseName: item.creamCheeseName || item.creamCheese || undefined,
+      quantity: Number(item.quantity) || 1,
+      toasted: item.toasted || 'not-toasted',
+      unitPrice: Number(item.unitPrice) || 0,
+      specialInstructions: item.specialInstructions || '',
+    }));
+  }
+  if (typeof rawItems === 'string') {
+    try {
+      const parsed = JSON.parse(rawItems);
+      return parseOrderItems(parsed);
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
 
 export async function getBagelsFromSupabase(): Promise<Bagel[]> {
   if (!isSupabaseConfigured()) {
@@ -112,7 +137,13 @@ export async function createOrderInSupabase(orderData: OrderInput): Promise<Orde
           orderNumber: data.order_number,
           status: data.status,
           customerName: data.customer_name,
+          email: data.email || orderData.email,
+          phone: data.phone || orderData.phone,
+          pickupTime: data.pickup_time || orderData.pickupTime,
+          notes: data.notes || orderData.notes,
+          items: parseOrderItems(data.items).length > 0 ? parseOrderItems(data.items) : orderData.items,
           totalAmount: Number(data.total_amount),
+          paymentMethod: orderData.paymentMethod || 'stripe',
           paymentStatus: orderData.paymentStatus || 'paid',
           stripePaymentIntentId: orderData.stripePaymentIntentId,
           createdAt: data.created_at,
@@ -124,13 +155,19 @@ export async function createOrderInSupabase(orderData: OrderInput): Promise<Orde
     }
   }
 
-  // Demo fallback response
+  // Demo fallback response with full preparation details preserved
   return {
     id: `ord-${Date.now()}`,
     orderNumber,
     status: 'pending',
     customerName: orderData.customerName,
+    email: orderData.email,
+    phone: orderData.phone,
+    pickupTime: orderData.pickupTime,
+    notes: orderData.notes,
+    items: orderData.items,
     totalAmount: orderData.totalAmount,
+    paymentMethod: orderData.paymentMethod || 'stripe',
     paymentStatus: orderData.paymentStatus || 'paid',
     stripePaymentIntentId: orderData.stripePaymentIntentId,
     createdAt: new Date().toISOString(),
@@ -154,6 +191,11 @@ export async function getOrderByNumberFromSupabase(orderNumber: string): Promise
       orderNumber: data.order_number,
       status: data.status,
       customerName: data.customer_name,
+      email: data.email,
+      phone: data.phone,
+      pickupTime: data.pickup_time,
+      notes: data.notes,
+      items: parseOrderItems(data.items),
       totalAmount: Number(data.total_amount),
       createdAt: data.created_at,
     };
@@ -162,4 +204,73 @@ export async function getOrderByNumberFromSupabase(orderNumber: string): Promise
     return null;
   }
 }
+
+export async function getAllOrdersFromSupabase(): Promise<AdminOrder[]> {
+  if (!isSupabaseConfigured()) return [];
+  try {
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error || !data) {
+      console.warn('Error fetching all orders from Supabase:', error?.message);
+      return [];
+    }
+
+    return data.map((item: any) => ({
+      id: String(item.id),
+      orderNumber: item.order_number,
+      status: item.status || 'pending',
+      customerName: item.customer_name,
+      email: item.email,
+      phone: item.phone,
+      pickupTime: item.pickup_time,
+      notes: item.notes,
+      items: parseOrderItems(item.items),
+      totalAmount: Number(item.total_amount),
+      paymentMethod: item.payment_method || 'stripe',
+      paymentStatus: item.payment_status || (item.notes?.includes('[PAID') ? 'paid' : 'pending'),
+      stripePaymentIntentId: item.stripe_payment_id,
+      createdAt: item.created_at,
+    }));
+  } catch (err) {
+    console.error('Failed to fetch orders from Supabase:', err);
+    return [];
+  }
+}
+
+export async function updateOrderStatusInSupabase(
+  orderIdOrNumber: string,
+  newStatus: 'pending' | 'preparing' | 'ready' | 'completed'
+): Promise<boolean> {
+  if (!isSupabaseConfigured()) return false;
+
+  // Bypass remote call for sample/local demo orders
+  if (
+    orderIdOrNumber.startsWith('sample-') ||
+    orderIdOrNumber.startsWith('ord-')
+  ) {
+    return true;
+  }
+
+  try {
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orderIdOrNumber);
+    const query = supabase.from('orders').update({ status: newStatus });
+
+    const { error } = isUuid
+      ? await query.eq('id', orderIdOrNumber)
+      : await query.ilike('order_number', orderIdOrNumber);
+
+    if (error) {
+      console.warn('Supabase update order status error (check RLS UPDATE policy):', error.message);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.warn('Failed to update order status in Supabase:', err);
+    return false;
+  }
+}
+
 

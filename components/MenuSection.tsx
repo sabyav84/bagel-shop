@@ -64,14 +64,14 @@ export function MenuSection({
   }).length;
 
   return (
-    <section id="menu" className="py-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+    <section id="menu" className="py-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10 scroll-mt-12">
       
       {/* Menu Header & Search Bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-amber-800/40">
         <div>
           <div className="flex items-center gap-2 text-xs font-bold text-amber-400 uppercase tracking-wider mb-1">
             <Sparkles className="w-4 h-4" />
-            Bagel Lab Menu
+            Bagelicious Bagels Menu
           </div>
           <h2 className="text-3xl font-bold font-serif text-amber-100">
             Browse by Category
@@ -171,7 +171,7 @@ export function MenuSection({
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-xs font-bold text-amber-400 uppercase tracking-wider">
             <PackageCheck className="w-4 h-4" />
-            House-Whipped Spread
+            House-Whipped Schmears
           </div>
           <h3 className="text-xl font-bold font-serif text-amber-100">
             Managed in Strapi Content CMS

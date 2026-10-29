@@ -31,6 +31,16 @@ export interface Bagel {
   calories?: number;
 }
 
+export interface OrderItemDetail {
+  bagelName: string;
+  breadOption?: string;
+  creamCheeseName?: string;
+  quantity: number;
+  toasted: 'not-toasted' | 'lightly-toasted' | 'well-done' | 'scooped' | string;
+  unitPrice: number;
+  specialInstructions?: string;
+}
+
 export interface CartItem {
   cartId: string;
   bagel: Bagel;
@@ -47,14 +57,7 @@ export interface OrderInput {
   phone: string;
   pickupTime: string;
   notes?: string;
-  items: {
-    bagelName: string;
-    breadOption?: string;
-    creamCheeseName?: string;
-    quantity: number;
-    toasted: string;
-    unitPrice: number;
-  }[];
+  items: OrderItemDetail[];
   totalAmount: number;
   paymentMethod?: 'stripe' | 'cash' | 'counter';
   paymentStatus?: 'paid' | 'pending';
@@ -71,4 +74,18 @@ export interface OrderResponse {
   paymentStatus?: 'paid' | 'pending';
   stripePaymentIntentId?: string;
   createdAt: string;
+  email?: string;
+  phone?: string;
+  pickupTime?: string;
+  notes?: string;
+  items?: OrderItemDetail[];
 }
+
+export interface AdminOrder extends OrderResponse {
+  email?: string;
+  phone?: string;
+  pickupTime?: string;
+  notes?: string;
+  items?: OrderItemDetail[];
+}
+

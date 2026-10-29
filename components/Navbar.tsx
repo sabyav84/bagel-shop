@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { ShoppingBag, Utensils, Clock, Store, ShieldCheck, PackageCheck } from 'lucide-react';
 import { OrderResponse } from '@/types/bagel';
 
@@ -48,7 +49,7 @@ export function Navbar({
                 </span>
               )}
             </div>
-            <p className="text-xs text-amber-300/80 font-sans flex items-center gap-2">
+            <p className="hidden sm:flex text-xs text-amber-300/80 font-sans flex items-center gap-2">
               <span>Hand-Rolled Daily</span>
               <span>•</span>
               <span className="flex items-center gap-1 text-amber-400">
@@ -68,7 +69,7 @@ export function Navbar({
           {activeOrder && onOpenActiveOrder && (
             <button
               onClick={onOpenActiveOrder}
-              className="flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-950/90 hover:bg-emerald-900 border border-emerald-700/60 text-emerald-300 text-xs font-bold transition shadow-md cursor-pointer animate-pulse"
+              className="hidden sm:flex flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-950/90 hover:bg-emerald-900 border border-emerald-700/60 text-emerald-300 text-xs font-bold transition shadow-md cursor-pointer animate-pulse"
               title="Click to check your active order progress"
             >
               <PackageCheck className="w-4 h-4 text-emerald-400" />
@@ -84,6 +85,15 @@ export function Navbar({
             <PackageCheck className="w-4 h-4 text-amber-400" />
             <span className="hidden sm:inline">Track Order</span>
           </button>
+
+          <Link
+            href="/admin"
+            className="items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-900/30 hover:bg-amber-900/60 border border-amber-800/60 text-amber-300 hover:text-amber-100 text-xs font-semibold transition"
+            title="Kitchen & Staff Order Dashboard"
+          >
+            <Utensils className="w-3.5 h-3.5 text-amber-400" />
+            <span className='hidden sm:inline'>Kitchen</span>
+          </Link>
 
           <button
             onClick={onOpenCart}
